@@ -1,36 +1,341 @@
 # diskless-testing-system
 A PXE boot server for functional test 
 
+                                        PXE启动服务器及客户端镜像制作
+
+Author: Beck Chen 
+chen.beck@hotmail.com 
+2016/9/25
+========================================================================================================================================
+说明: 本文基于CENTOS6_x86_64操作系统, 所需的软件安装推荐使用yum以简化安装流程.关于YUM源的设定请参照本文最后一章的说明. 如使用7.0以上版
+本的RHEL/CentOS制作,服务的开启等通过systemctl命令管理,请自行查找使用方法.
+
+切记不要将DHCP Server网口连到非本地测试网络外的其他网络,会导致其他网络IP分配异常.
+========================================================================================================================================
 
 
-使用说明:
+所需软件和服务
 
-
-1. 所有脚本基于CentOS6 X86_64系统,其他系统需要修改脚本.请阅读<PXE无盘制作.txt>文档了解详情. 运行前需确保yum源正确配置,请参考<PXE无盘制作.txt> 4.7节.
-
-
-2. mk_srv.sh:制作PXE server, 在服务器端运行,功能为自动配置网卡,安装配置并开启dhcp,tftp,nfs,生成/pxeserver/tftp/pxelinux.cfg/default文件. 指令运行成功后需重启服务器.
-   使用该脚本时必须保证ifcfg-eth0,dhcpd.conf,pxe_menu.conf,tftp这4个文件与脚本在相同的路径下.
-
-    运行指令  sh mk_srv.sh
- 
-
-3. mk_client.sh:制作客户端PXE镜像,在客户端已安装的本地操作系统内运行,生成镜像目录并打包压缩为 机器名.tar.gz
-    
-   运行指令  sh mk_client.sh
-   
-   需输入合法的机器名以创建路径和压缩包名称
-
-
-4. 将第3步生成的打包文件拷贝到服务器端,并在根目录下使用 tar -zxvf 机器名.tar.gz 解压. 
-
-5. 在服务器端修改第2步生成的/pxeserver/tftp/pxelinux.cfg/default文件.将文件中的xxx替换为第3步输入的机器名(区分大小写).
-
-6. 将同型号客户端服务器设定为从网络启动并连接到服务器即可实现PXE无盘启动.
-
-7. PXE高级选单制作请参考<PXE无盘制作.txt> 4.2节.
+服务器端: 
+	DHCP:		为客户端分配IP
+	TFTP:		Tiny FTP, 传送PXE Menu, Kernel, Initrd等文件
+	NFS-utils:	网络文件系统,可供Client挂载,存储文件等
+	Rpcbind:	NFS的守护进程
+	Syslinux: 	提供PXE启动引导文件pxelinux.0
 
 
 
-Beck Chen
-2016/9/26
+客户端
+	需要先在本机硬盘内完整安装一遍Linux操作系统,然后将该操作系统的镜像稍作修改后拷贝到nfs服务的启动目录内,以后相同硬件平台的客户端机
+	器都可以从该目录启动和挂载根文件系统,实现PXE无盘操作.
+	
+	客户端需安装dracut和dracut-network,用于制作initrd启动镜像文件,dracut-network会为镜像内添加nfs等网络支持,如不安装会出现PXE启动过程
+	中无法识别nfs的问题.
+
+	
+========================================================================================================================================
+以下为正文,所有操作均使用root用户权限完成.
+
+
+				第1章 服务器端软件的安装,配置及启动
+
+  1.1 设定本机固定IP:
+	  将要提供PXE启动服务的网口设定为固定IP 192.168.1.5,并重新启动网络, 查看IP是否生效. 此为Linux基本操作,不再详述.
+	  
+  1.2 DHCP
+	  1.2.1	DHCP安装
+			yum install -y dhcp
+			
+	  1.2.2	修改DHCP配置文件
+			vi /etc/dhcp/dhcpd.conf
+			
+			内容如下,注意分号一定不能少
+			ddns-update-style none;
+			ignore client-updates;
+			default-lease-time -1;
+			max-lease-time -1;
+			authritative;
+			
+			subnet 192.168.1.0 netmask 255.255.255.0 {
+				range 192.168.1.100 192.168.1.200;
+				next-server 192.168.1.5;               
+				filename "pxelinux.0";
+			}
+			
+			
+	  1.2.3	重启DHCP,并加入开机自动启动: 
+			service dhcpd restart
+			chkconfig dhcpd on
+			
+	  1.2.4	关闭防火墙,并确认防火墙是否关闭成功
+			service iptables stop 
+			chkconfig iptables off
+			service iptables status
+			
+			彻底关闭防火墙的方法: 
+			vi /etc/selinux/config
+			
+			将 SELINUX=enforcing 改成:
+			SELINUX=disabled
+			重启系统后生效
+			
+	  1.2.5	检查DHCP server是否工作:可使用个人工作电脑连接到该server,若能正确分到192.168.1.100~192.168.1.200之间的IP,则说明DHCP工作正常.
+	  
+	  
+  1.3 TFTP
+	  1.3.1	建立文件夹
+			mkdir -p /pxeserver/tftpboot
+			mkdir -p /pxeserver/models
+			
+	  1.3.2	TFTP安装
+			yum install -y tftp-server
+			
+	  1.3.3	修改TFTP配置文件
+			vi /etc/xinetd.d/tftp
+			
+			只需修改如下两处
+			server_args = -s /pxeserver/tftpboot #改成刚刚新建的地址
+			disable = no                         #disable改为no
+			
+	  1.3.5 重启TFTP,并加入开机自动启动
+			service xinetd restart
+			chkconfig xinetd on
+					
+					
+  1.4 NFS	
+	  1.4.1	NFS安装
+			yum install -y nfs-utils rpcbind
+			
+	  1.4.2	修改NFS配置文件
+			vi /etc/exports
+			
+			添加如下内容:
+			/pxeserver/models	192.168.1.0/24(rw,async,no_root_squash)
+			
+	  1.4.3	重启rpcbind,nfs,并加入开机自动启动
+			service rpcbind restart
+			chkconfig rpcbind on
+			service rpcbind restart
+			chkconfig nfs on
+			
+	  1.4.4	检查nfs文件夹是否发布成功
+			exportfs
+			
+			应该可以看到如下内容:
+			/pxeserver/models 		
+							192.168.1.0/24
+
+
+  1.5 syslinux
+	  1.5.1	syslinux安装
+			yum install -y syslinux
+			
+      1.5.2 拷贝PXE引导文件pxelinux.0到tftpboot
+			cp /usr/share/syslinux/pxelinux.0  /pxeserver/tftpboot
+			
+	  1.5.3	拷贝内核vmlinuz和启动镜像initrd到/pxeserver/tftpboot
+			从客户端的本地镜像/boot下拷贝过来,initrd会在客户端用dracut生成后再拷贝,后面2.6.2节有详细介绍
+			
+	  1.5.4	创建配置文件,即PXE启动时看到的菜单相关的文件  
+			mkdir -p /pxeserver/tftpboot/pxelinux.cfg
+			vi /pxeserver/tftpboot/pxelinux.cfg/default
+			
+			添加如下内容:
+			default auto
+			label auto
+			prompt 0
+			kernel vmlinuz-xxx  
+			append initrd=initrd-xxx.img root=nfs:192.168.1.5:/pxeserver/models/xxx selinux=0 ip=dhcp rw vga=0x314
+			
+			#以上kernel file和initrd的文件名中xxx的最好与/pxeserver/models/xxx路径中一致,
+			#取决于客户端建立镜像时使用的名称,建议以机器型号命名,如本文第2部分使用DL360G9代替xxx
+			
+			
+			
+  1.6 /pxeserver路径下的结构如下
+	  /pxeserver
+			|___models			-------------------- 此路径可存放多个客户端镜像路径,下一级路径建议以机器型号命名
+			|		|____xxx	-------------------- 存放xxx机器的nfs文件系统
+			|
+			|___tftpboot		-------------------- 此路径存放tftp server及PXE启动相关的文件
+					|____pxelinux.cfg
+					|		|____default	-------- 默认的PXE启动配置文件
+					|		
+					|____pxelinux.0	-----------------PXE启动引导文件
+					|
+					|___vmlinuz-xxx	-----------------xxx型号机器的客户端linux kernel文件
+					|
+					|___initrd-xxx.img	------------ xxx型号机器的客户端linux 启动镜像文件
+					
+					
+  1.7 服务器端配置完成后重启一遍,再用service指令查看一下dhcp xinetd nfs是否正常启动,防火墙是否关闭.	
+  
+  
+                第2章 客户端制作文件系统镜像及启动文件镜像
+				
+  2.1 建立/pxeserver/models/xxx路径 
+	  mkdir -p /pxeserver/models/DL360G9       #此处以DL360G9为例建立路径
+	  mkdir -p /pxeserver/tftpboot
+	  
+  2.2 使用rsync保存整个系统的文件镜像,注意此时不要挂载CD, U盘的大容量存储设备,会被一并添加到镜像,增加镜像的容量.也可用自行添加
+      --exclude='挂载目录'的方式排除外部存储设备
+	  
+	  rsync -av --exclude='/proc' --exclude='/sys' --exclude='/tmp' --exclude='/var/tmp' --exclude='/etc/mtab' \
+	  --exclude='/pxeserver' /* /pxeserver/models/DL360G9
+	  
+	  #如果客户端系统中有自建路径或文件不想加入镜像的可用 --exclude参数排除
+	  
+  2.3 在DL360G9路径下自行建立上一步排除的路径,应该注意到这几个路径是fstab内的非本地硬盘挂载点.
+	  cd /pxeserver/models/DL360G9
+	  mkdir -p proc sys tmp var/tmp
+	  cd
+	  
+  2.4 删除以太网络配置文件,因为该配置内通常会含有MAC信息,后续其他机器启动时会自动建立该文件,如不删除有可能会造成客户端网卡启动异常.
+	  rm -f /pxeserver/models/DL360G9/etc/sysconfig/network-script/ifcfg-eth*
+	  
+  2.5 修改文件系统挂载点设定文件 etc/fstab
+	  vi /pxeserver/models/DL360G9/etc/fstab
+	  
+	  删除其中本地文件系统相关的条目,换成nfs挂载点.
+	  例如删除如下3条(取决于安装操作系统时的分区layout),CENTOS6的本地文件系统一般是ext4
+	  
+	  /dev/mapper/VolGroup-lv_root              /        ext4    defaults        1 1
+	  UUID=b9db4c59-5da9-49d5-a99d-20629aac803c /boot    ext4    defaults        1 2
+	  /dev/mapper/VolGroup-lv_home 		      /home    ext4    defaults        1 2
+	  
+	  换成如下一条
+	  192.168.1.5:/pxeserver/models/DL360G9		/		nfs		defaults	0 0		
+	  
+  2.6 制作initrd-DL360G9.img 
+  
+	  2.6.1	安装dracut和dracut-network
+			yum install -y dracut dracut-network
+			
+	  2.6.2	制作initrd镜像,拷贝kernel文件
+			dracut initrd-`uname -r`.img `uname -r`
+			chmod 644 initrd-`uname -r`.img
+			mv initrd-`uname -r`.img /pxeserver/tftpboot/initrd-DL360G9.img
+			cp /boot/vmlinuz-`uname -r` /pxeserver/tftpboot/vmlinuz-DL360G9
+	
+  2.7 打包压缩/pxeserver路径
+	  cd /      #确认当前路径不在/pxeserver内
+	  tar -zcvf DL360G9.tar.gz /pxeserver
+	  
+  2.8 将生成的压缩文件通过优盘,移动硬盘或者通过nfs上传到服务器端 
+  
+  
+                第3章 在服务器端解压缩镜像并配置
+
+  3.1 将DL360G9.tar.gz 拷贝到/根目录并用cd / 切换到根目录下
+  
+  3.2 解压缩,会在原有的/pxeserver下将新打包过来的文件和路径都解压出来而不覆盖原来的文件或路径
+	  [root@localhost /]#tar -zxvf DL360G9.tar.gz 
+	  
+  3.3 将vmlinuz-DL360G9和initrd-DL360G9.img 拷贝到/pxeserver/tftpboot路径下
+  
+  3.4 连接测试
+	  客户端与服务器连接,重启客户端并设定从网络启动,正常启动到登录界面后使用原来在客户端设定的用户名和密码即可登录.
+	  
+	  
+                第4章 其他
+				
+  4.1 PXE启动过程中常见错误及排除方法
+  
+	  网卡报Check cable: 			检查服务器端网络是否启动或网线
+	  DHCP进度条一直转分不到IP: 	检查DHCP Server是否正常启动
+	  TFTP超时: 					检查TFTP服务是否启动,防火墙是否关闭,/etc/xinetd.d/tftp内设置是否修改正确
+	  找不到kernel或启动镜像: 		检查pxelinux.cfg/default文件配置是否有错误 或者kernel initrd文件是否正确的放在了
+									/pxeserver/tftpboot下,initrd要有644属性
+	  启动过程中无法挂载nfs:		检查nfs是否启动正常, pxelinux.cfg/default文件中nfs地址是否有错误
+	  
+  4.2 服务器端高级pxelinux.cfg/default选单配置
+  
+	  使用安装盘中的高级选单:
+	  将安装光盘中 isolinux路径下的splash.jpg vesamenu.c32 memtest 拷贝到/pxeserver/tftpboot路径下,
+	  将相同路径下的 isolinux.cfg拷贝到/pxeserver/tftpboot/pxelinux.cfg路径下并改名为default
+	  
+	  修改default文件内容如下,主要改动在每一个Label下的Kernel file, initrd file的名称,地址, root挂载点等. Modelname1,2为其他型号机器的范
+	  例,依照本文第2,3两部分完成客户端操作系统镜像制作后,Model1,2改为对应的型号名即可.splash.jpg为PXE启动菜单选择界面的背景图片,可以根据
+	  尺寸要求(640*480像素)个性化定制.
+	  
+	  default vesamenu.c32
+	  #prompt 1
+	  timeout 600
+	  
+	  display boot.msg
+	  
+	  menu background splash.jpg
+	  menu title Please select corresponding boot image-CentOS6.8
+	  menu color border 0 #ffffffff #00000000
+	  menu color sel 7 #ffffffff #ff000000
+	  menu color title 0 #ffffffff #00000000
+	  menu color tabmsg 0 #ffffffff #00000000
+	  menu color unsel 0 #ffffffff #00000000
+	  menu color hotsel 0 #ff000000 #ffffffff
+	  menu color hotkey 7 #ffffffff #ff000000
+	  menu color scrollbar 0 #ffffffff #00000000
+	  
+	  label DL360G9 
+		menu label ^DL360G9 PXE boot
+		menu default
+		kernel vmlinuz-DL360
+		append initrd=initrd-DL360G9.img root=nfs:192.168.1.5:/pxeserver/models/DL360G9 selinux=0 ip=dhcp rw nomodeset vga=0x0314
+		
+	  label Modelname1
+		menu label Modelname^1 PXE boot
+		menu default
+		kernel vmlinuz-Modelname1
+		append initrd=initrd-Modelname1.img root=nfs:192.168.1.5:/pxeserver/models/Modelname1 selinux=0 ip=dhcp rw nomodeset vga=0x0314
+		
+		label Modelname2
+		menu label Modelname^2 PXE boot
+		menu default
+		kernel vmlinuz-Modelname2
+		append initrd=initrd-Modelname2.img root=nfs:192.168.1.5:/pxeserver/models/Modelname2 selinux=0 ip=dhcp rw nomodeset vga=0x0314
+	  label local
+		menu label Boot from ^local drive
+		localboot 0xffff
+		
+	  label memtest86
+		menu label ^Memory test
+		kernel memtest
+		append -
+		
+  4.3 服务器端的设定可以在虚拟机中完成,易于备份和转移.
+  
+  4.4 第1部分服务端设定可使用本文件夹内的脚本mk_srv.sh自动完成, 运行sh mk_srv.sh
+  
+  4.5 第2部分客户端镜像制作可使用本文件夹内的脚本mk_client.sh自动完成,运行sh mk_client.sh
+  
+  4.6 使用上述脚本生成的打包镜像文件拷贝到服务器端并解压后,修改/pxeserver/tftpboot/pxelinux.cfg/default内的对应条目即可.
+  
+  4.7 关于YUM源的设定
+	  4.7.1 通过网络YUM源安装
+			如果服务器能够直接连接到互联网,那么直接联网使用yum是最简便的方式,有时第一次使用yum时会遇到域名不能解析的问题,在
+			/etc/resolv.conf中添加有效的DNS server地址即可,如加入以下一条
+			nameserver 114.114.114.114
+
+	  4.7.2	使用本地CDROM或安装U盘做YUM源
+			无法连接到互联网时,用CDROM或U盘做YUM源也是很方便的. 如下以使用安装U盘做YUM源为例介绍如何修改media YUM源.
+			
+			首先挂载U盘,建议直接挂载到/media :
+			mount /dev/sdxx /media    #sdxx 为安装U盘所在的分区,建议使用FAT32格式,CENTOS6需要额外安装软件才能支持NTFS
+			
+			然后修改/etc/yum.repos.d/下的主配置文件CentOS-Base.repo,将其改名以屏蔽使用主配置:
+			mv CentOS-Base.repo CentOS-Base.repo.bak
+			
+			最后修改/etc/yum.repos.d/下的CentOS-Media.repo,以使用本地媒体做YUM源:
+			baseurl=file:///media/xxx
+					file:///media/xxx
+					file:///media/xxx	
+			只需将上述三条中的任意一条映射到正确的挂载点即可,可修改第一条,并修改gpgcheck,enabled以开启media YUM源.
+			baseurl=file:///media
+					file:///media/xxx
+					file:///media/xxx
+			gpgcheck=0
+			enabled=1
+			
+
+
+
+
