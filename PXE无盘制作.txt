@@ -17,7 +17,6 @@ chen.beck@hotmail.com
 	DHCP:		为客户端分配IP
 	TFTP:		Tiny FTP, 传送PXE Menu, Kernel, Initrd等文件
 	NFS-utils:	网络文件系统,可供Client挂载,存储文件等
-	Rpcbind:	NFS的守护进程
 	Syslinux: 	提供PXE启动引导文件pxelinux.0
 
 
@@ -61,13 +60,16 @@ chen.beck@hotmail.com
 			
 			
 	  1.2.3	重启DHCP,并加入开机自动启动: 
-			service dhcpd restart
-			chkconfig dhcpd on
+			systemctl restart dhcpd.service
+			systemctl enable dhcpd.service
+			查看是否启动成功:systemctl status dhcpd.service
+					systemctl is-enabled dhcpd.service
 			
 	  1.2.4	关闭防火墙,并确认防火墙是否关闭成功
-			service iptables stop 
-			chkconfig iptables off
-			service iptables status
+			systemctl stop firewalld.service 
+			systemctl disable firewalld.service 
+			systemctl status firewalld.service 
+			systemctl is-enabled firewalld.service 
 			
 			彻底关闭防火墙的方法: 
 			vi /etc/selinux/config
@@ -95,13 +97,16 @@ chen.beck@hotmail.com
 			disable = no                         #disable改为no
 			
 	  1.3.5 重启TFTP,并加入开机自动启动
-			service xinetd restart
-			chkconfig xinetd on
+			systemctl start tftp.socket
+			systemctl start tftp.service
+			systemctl enable tftp.socket
+			systemctl enable tftp.service
+
 					
 					
   1.4 NFS	
 	  1.4.1	NFS安装
-			yum install -y nfs-utils rpcbind
+			yum install -y nfs-utils 
 			
 	  1.4.2	修改NFS配置文件
 			vi /etc/exports
@@ -110,10 +115,17 @@ chen.beck@hotmail.com
 			/pxeserver/models	192.168.1.0/24(rw,async,no_root_squash)
 			
 	  1.4.3	重启rpcbind,nfs,并加入开机自动启动
-			service rpcbind restart
-			chkconfig rpcbind on
-			service rpcbind restart
-			chkconfig nfs on
+	  		systemctl start rpcbind.service
+			systemctl start nfs-server.service
+			systemctl start nfs-lock.service
+			systemctl start nfs-idmap.service
+			
+			systemctl enable rpcbind.service
+			systemctl enable nfs-server.service
+			systemctl enable nfs-lock.service
+			systemctl enable nfs-idmap.service
+		
+		
 			
 	  1.4.4	检查nfs文件夹是否发布成功
 			exportfs
