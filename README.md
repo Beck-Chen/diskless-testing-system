@@ -4,7 +4,7 @@
 
 使用说明:
  
-1. 所有脚本基于CentOS6 X86_64系统,其他系统需要修改脚本.请阅读<PXE无盘制作.txt>文档了解详情. 运行前需确保yum源正确配置,请参考<PXE无盘制作.txt> 4.7节.
+1. 所有脚本基于CentOS6 X86_64系统,其他系统需要修改脚本.请阅读PXE无盘制作.txt文档了解详情. 运行前需确保yum源正确配置,请参考<PXE无盘制作.txt> 4.7节.
 
 2. mk_srv.sh:制作PXE server, 在服务器端运行,功能为自动配置网卡,安装配置并开启dhcp,tftp,nfs,生成/pxeserver/tftp/pxelinux.cfg/default文件. 指令运行成功后需重启服务器.使用该脚本时必须保证ifcfg-eth0,dhcpd.conf,pxe_menu.conf,tftp这4个文件与脚本在相同的路径下.
     运行指令  sh mk_srv.sh
