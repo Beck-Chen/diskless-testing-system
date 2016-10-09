@@ -1,12 +1,13 @@
 #!/bin/bash
 
-#This script is based on CentOS 6.X X86_64. The function is to create PXE boot root file system, initrd image, 
+#This script is based on CentOS 6 or 7 X86_64. The function is to create PXE boot root file system, initrd image, 
 #copy kernel file and compress the image folder into a single .tar.gz file in a newly installed OS.
 
 
 # Author: Beck Chen  
 # Email:  chen.beck@hotmail.com
 # History:2016/9/24 FirstRelease
+#	  2016/10/9 modify fstab creation method to support both CentOS6(ext4) and CentOS7(xfs)
 
 
 #Checking whether dracut and dracut-network are both installed or not.
@@ -17,7 +18,7 @@ if [ $sw_chk -lt 2 ]; then
 	
 else 
 	#create directory base on model name to save root nfs system	
-	echo -e "\e[1;44mPlease key in the Unit or MLB model name to create a directory(EX:K900G3.)\
+	echo -e "\e[1;44mPlease key in the Unit or MLB model name plus OS ver to create a directory(EX:K900G3-CentOS68.)\
 	PS: Must be unique from any known linux system directory name and must be a legal directory name!!!\e[0m"
 	read -p "Model Name:" modelname
 	pxe_dir=/pxeserver
@@ -38,10 +39,9 @@ else
 	#Change local mount points into nfs address. May need modification if the HDD partition was customerized.
 	#sed -i "s/^.*root.*/192\.168\.1\.5:$model_dir\t\/\tnfs\tdefaults\t0\ 0/g" $model_dir/etc/fstab
 	#sed -i "s/^.*\/boot.*//g" $model_dir/etc/fstab
-    mv $model_dir/etc/fstab $model_dir/etc/fstab.bak
-	grep -v 'ext' $model_dir/etc/fstab.bak | grep -v '#' \
-	| sed "1i 192\.168\.1\.5:$model_dir\t\/\tnfs\tdefaults\t0\ 0"
-	>$model_dir/etc/fstab
+        mv $model_dir/etc/fstab $model_dir/etc/fstab.bak
+	egrep -v 'ext|xfs|#' $model_dir/etc/fstab.bak\
+	| sed "1i 192\.168\.1\.5:$model_dir\t\/\tnfs\tdefaults\t0\ 0">$model_dir/etc/fstab
 	
 	#create initrd image and cp kernel file
 	echo -e "\e[1;44mCreating initrd image is in progress and this may take a few minutes...     \e[0m"
