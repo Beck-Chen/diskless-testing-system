@@ -206,7 +206,7 @@ chen.beck@hotmail.com
 	  vi /pxeserver/models/DL360G9/etc/fstab
 	  
 	  删除其中本地文件系统相关的条目,换成nfs挂载点.
-	  例如删除如下3条(取决于安装操作系统时的分区layout),CENTOS6的本地文件系统一般是ext4
+	  例如删除如下3条(取决于安装操作系统时的分区layout),CENTOS6的本地文件系统一般是ext4,CENTOS7的本地文件系统一般是xfs
 	  
 	  /dev/mapper/VolGroup-lv_root              /        ext4    defaults        1 1
 	  UUID=b9db4c59-5da9-49d5-a99d-20629aac803c /boot    ext4    defaults        1 2
