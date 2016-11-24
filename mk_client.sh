@@ -40,8 +40,7 @@ else
 	#sed -i "s/^.*\/boot.*//g" $model_dir/etc/fstab
     mv $model_dir/etc/fstab $model_dir/etc/fstab.bak
 	grep -v 'ext' $model_dir/etc/fstab.bak | grep -v '#' \
-	| sed "1i 192\.168\.1\.5:$model_dir\t\/\tnfs\tdefaults\t0\ 0"
-	>$model_dir/etc/fstab
+	| sed "1i 192\.168\.1\.5:$model_dir\t\/\tnfs\tdefaults\t0\ 0" >>$model_dir/etc/fstab
 	
 	#create initrd image and cp kernel file
 	echo -e "\e[1;44mCreating initrd image is in progress and this may take a few minutes...     \e[0m"
