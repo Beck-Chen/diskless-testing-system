@@ -7,6 +7,7 @@
 # Author: Beck Chen  
 # Email:  chen.beck@hotmail.com
 # History:2016/9/24 FirstRelease
+#         2016/12/26 Modify to exclude /media in backup process
 
 
 #Checking whether dracut and dracut-network are both installed or not.
@@ -28,7 +29,7 @@ else
 	cd /
 	#copy current root file system to the directory you just created
 	rsync -av --exclude='/proc' --exclude='/sys' --exclude='/tmp' \
---exclude='/var/tmp' --exclude='/etc/mtab' --exclude="$pxe_dir" /* $model_dir
+--exclude='/var/tmp' --exclude='/etc/mtab'  --exclude='/media' --exclude="$pxe_dir" /* $model_dir
 	mkdir -p $model_dir/proc $model_dir/sys $model_dir/tmp $model_dir/var/tmp
 
 	#remove networking configuration files
@@ -54,5 +55,5 @@ else
 
 	echo -e "\e[1;42mAll the nfs root files were successfully compressed in $modelname.tar.gz    \e[0m"
 	echo -e "\e[1;42mPlease copy and extract it to / of PXE server by tar -zxvf $modelname.tar.gz\e[0m"
-	echo -e "\e[1;42mEdit PXE menu in $tftp_dir/pxelinux.cfg/default                            \e[0m"
+	echo -e "\e[1;42mEdit PXE menu in $tftp_dir/pxelinux.cfg/default in PXE server by  sh pxe_menu_config.sh   \e[0m"
 fi
