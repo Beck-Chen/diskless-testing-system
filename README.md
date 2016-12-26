@@ -16,11 +16,12 @@
 
 4. 将第3步生成的打包文件拷贝到服务器端,并在根目录下使用 tar -zxvf 机器名.tar.gz 解压. 
 
-5. 在服务器端修改第2步生成的/pxeserver/tftp/pxelinux.cfg/default文件.将文件中的xxx替换为第3步输入的机器名(区分大小写).
+5. 在服务器端运行pxe_menu_config.sh脚本,完成对/pxeserver/tftp/pxelinux.cfg/default文件的修改，生成对应的pxe menu entry.
+   	进入脚本所在路径后运行指令 sh pxe_menu_config.sh
 
 6. 将同型号客户端服务器设定为从网络启动并连接到服务器即可实现PXE无盘启动.
 
 7. PXE高级选单制作请参考<PXE无盘制作.txt> 4.2节.
 
 Beck Chen
-2016/9/26
+2016/12/26
