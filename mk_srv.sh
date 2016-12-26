@@ -8,6 +8,7 @@
 # Author: Beck Chen  
 # Email:  chen.beck@hotmail.com
 # History:2016/9/24 FirstRelease
+#         2016/12/26 Modify PXE menu configuration to advanced version
 
 
 #directories of key files
@@ -65,7 +66,10 @@ cp /usr/share/syslinux/pxelinux.0 $tftp_dir
 
 #Configure PXE menu file, may need to modify after client image is created.
 mkdir -p $pxe_menu_dir
-cat $pkg_dir/pxe_menu.conf > $pxe_menu_dir/default
+cp -f $pkg_dir/vesamenu.c32 $pxe_menu_dir
+cp -f $pkg_dir/splash.jpg $pxe_menu_dir
+cat $pkg_dir/pxe_menu_adv.conf > $pxe_menu_dir/default
+
 
 #Configure Selinux 
 sed -i 's/^SELINUX=.*/SELINUX=disabled/g' $cfg_selinux
