@@ -66,8 +66,8 @@ cp /usr/share/syslinux/pxelinux.0 $tftp_dir
 
 #Configure PXE menu file, may need to modify after client image is created.
 mkdir -p $pxe_menu_dir
-cp -f $pkg_dir/vesamenu.c32 $pxe_menu_dir
-cp -f $pkg_dir/splash.jpg $pxe_menu_dir
+cp -f $pkg_dir/vesamenu.c32 $tftp_dir
+cp -f $pkg_dir/splash.jpg $tftp_dir
 cat $pkg_dir/pxe_menu_adv.conf > $pxe_menu_dir/default
 
 
