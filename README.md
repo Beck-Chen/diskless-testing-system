@@ -1,10 +1,9 @@
  # diskless-testing-system
   A PXE boot server for functional test 
-  
-  
+ 
   
  statement of usage:
- 1. All the scripts are based on CentOS6 x86_64, please refer to <PXE diskless system creation.txt> to understand the detail inforamtion. Make sure yum respository is correctly configured before running these scripts. Please refer to chapter 4.7 in <PXE diskless system creation.txt> to configure yum.
+ 1. All the scripts are based on CentOS6 x86_64, please refer to PXE diskless system creation.txt to understand the detail inforamtion. Make sure yum respository is correctly configured before running these scripts. Please refer to chapter 4.7 in PXE diskless system creation.txt to configure yum.
  
  2. mk_srv.sh: This script is used in server side to automatically configure a PXE server. ethernet card and dhcp,tftp,nfs services will abe configured after running this script. PXE menu file "default" will also be created in /pxeserver/tftp/pxelinux.cfg directory. Rebooting is required after the process. Please make sure files of ifconfig-eth0,dhcp.conf,pxe_menu_adv.conf and tftp are located in the same directory with this script.
      command     sh mk_srv.sh
@@ -27,7 +26,7 @@ Beck Chen
 
 使用说明:
  
-1. 所有脚本基于CentOS6 X86_64系统,其他系统需要修改脚本.请阅读<PXE diskless system creation.txt>文档了解详情. 运行前需确保yum源正确配置,请参考<PXE diskless system creation.txt> 4.7节.
+1. 所有脚本基于CentOS6 X86_64系统,其他系统需要修改脚本.请阅读 PXE diskless system creation.txt 文档了解详情. 运行前需确保yum源正确配置,请参考 PXE diskless system creation.txt 4.7节.
 
 2. mk_srv.sh:制作PXE server, 在服务器端运行,功能为自动配置网卡,安装配置并开启dhcp,tftp,nfs,生成/pxeserver/tftp/pxelinux.cfg/default文件. 指令运行成功后需重启服务器.使用该脚本时必须保证ifcfg-eth0,dhcpd.conf,pxe_menu_adv.conf,tftp这4个文件与脚本在相同的路径下.
     运行指令  sh mk_srv.sh
