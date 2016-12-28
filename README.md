@@ -3,20 +3,29 @@
  
   
  Statement of Usage:
+ 
  1 All the scripts are based on CentOS6 x86_64, please refer to PXE diskless system creation.txt to understand the detail inforamtion. Make sure yum respository is correctly configured before running these scripts. Please refer to chapter 4.7 in PXE diskless system creation.txt to configure yum.
  
  2 mk_srv.sh: This script is used in server side to automatically configure a PXE server. ethernet card and dhcp,tftp,nfs services will abe configured after running this script. PXE menu file "default" will also be created in /pxeserver/tftp/pxelinux.cfg directory. Rebooting is required after the process. Please make sure files of ifconfig-eth0,dhcp.conf,pxe_menu_adv.conf and tftp are located in the same directory with this script.
-     command     sh mk_srv.sh
+ 
+    command     sh mk_srv.sh
+    
  
 3 mk_client.sh: This script is used in client side to automatically created an initrd file and a bootable nfs directory, all the files will be compressed in the tar.gz file which is named based on the machine name you are required to input.
-     command     sh mk_client.sh
+
+   command     sh mk_client.sh
+   
          
 4 Uncompress the tar.gz file which was generated in step3 to the "/" directory in server side.
-     command     cd /
-                 tar zxvf machinename.tar.gz
+    
+   command     cd /
+               tar zxvf machinename.tar.gz
+               
      
 5 Run pxe_menu_config.sh in server side and it will modify pxe menu entry, the exactly same machine name you input in step3 will be required to input again in this step.
-     command    sh pxe_menu_config.sh
+   
+   command    sh pxe_menu_config.sh
+   
      
 6 Configure the boot sequence in any of same model client and enjoy the PXE diskless system.
 
