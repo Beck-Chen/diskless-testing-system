@@ -1,5 +1,10 @@
+
+
 label xxx
 	menu label xxx PXE boot
 	menu default
 	kernel vmlinuz-xxx
 	append initrd=initrd-xxx.img root=nfs:192.168.1.5:/pxeserver/models/xxx selinux=0 ip=dhcp rw nomodeset
+	
+	
+	
