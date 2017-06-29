@@ -4,9 +4,9 @@
   
  Statement of Usage:
  
- 1 All the scripts are based on CentOS6 x86_64, please refer to PXE diskless system creation.txt to understand the detail inforamtion. Make sure yum respository is correctly configured before running these scripts. Please refer to chapter 4.7 in PXE diskless system creation.txt to configure yum.
+ 1 All the scripts are based on CentOS6 x86_64, please refer to PXE diskless system creation.txt to understand more detailed inforamtion. Make sure yum repository is correctly configured before running these scripts. Please refer to chapter 4.7 in PXE diskless system creation.txt to configure yum.
  
- 2 mk_srv.sh: This script is used in server side to automatically configure a PXE server. ethernet card and dhcp,tftp,nfs services will abe configured after running this script. PXE menu file "default" will also be created in /pxeserver/tftp/pxelinux.cfg directory. Rebooting is required after the process. Please make sure files of ifconfig-eth0,dhcp.conf,pxe_menu_adv.conf and tftp are located in the same directory with this script.
+ 2 mk_srv.sh: This script is used in server side to automatically configure a PXE server. Ethernet card and dhcp,tftp,nfs services will be configured after running this script. PXE menu file "default" will also be created in /pxeserver/tftp/pxelinux.cfg directory. Rebooting is required after the process. Please make sure files of ifconfig-eth0,dhcp.conf,pxe_menu_adv.conf and tftp are located in the same directory with this script.
  
     command     sh mk_srv.sh
     
